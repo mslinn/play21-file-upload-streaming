@@ -3,11 +3,10 @@ package controllers
 import play.api._
 import mvc._
 import services.StreamingBodyParser.streamingBodyParser
-import java.io.{FileOutputStream, File}
+import java.io.{InputStream, FileOutputStream, File}
 import com.amazonaws.auth.AWSCredentials
 import com.amazonaws.services.s3.AmazonS3Client
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest
-import com.amazonaws.services.s3.model.ObjectMetadata
+import com.amazonaws.services.s3.model.{UploadPartRequest, InitiateMultipartUploadRequest, ObjectMetadata, PutObjectRequest}
 
 object Application extends Controller {
   val welcomeMsg = "Demonstrations of Streaming File Uploads for Play 2.1"
@@ -17,8 +16,8 @@ object Application extends Controller {
   }
 
   /** Higher-order function that accepts the unqualified name of the file to stream to and returns the output stream
-    * for the new file. This example streams to a file, but streaming to AWS S3 is also possible */
-  def streamConstructor(filename: String) = {
+    * for the new file. This example streams to a file. */
+  def streamConstructor(filename: String, ignored: InputStream) = {
     val dir = new File(sys.env("HOME"), "uploadedFiles")
     dir.mkdirs()
     Option(new FileOutputStream(new File(dir, filename)))
@@ -38,9 +37,9 @@ object Application extends Controller {
 
   lazy val awsBucketName  = sys.env("awsBucketName")
 
-  /** Higher-order function that accepts the unqualified name of the AWS S3 file to stream to and returns the output stream
-    * for the new file. */
-  def streamConstructorAWS(filename: String) = {
+  /** Higher-order function that accepts the unqualified name of the AWS S3 file to stream to and returns the output
+    * stream for the new file. */
+  def streamConstructorAWS(filename: String, inputStream: InputStream) = {
     val s3 = new AmazonS3Client(new AWSCredentials {
       def getAWSAccessKeyId = sys.env("awsAccessKey")
 
@@ -50,7 +49,8 @@ object Application extends Controller {
     if (!s3.doesBucketExist(awsBucketName))
       s3.createBucket(awsBucketName)
     val uploadRequest = new InitiateMultipartUploadRequest(awsBucketName, filename)
-    //s3.putObject(awsBucketName, filename, uploadRequest, new ObjectMetadata())
+    val initiateMultipartUploadResult = s3.initiateMultipartUpload(uploadRequest)
+    val uploadId = initiateMultipartUploadResult.getUploadId
     //Option(s3.completeMultipartUpload())
   }
 
