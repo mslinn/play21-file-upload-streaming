@@ -14,5 +14,12 @@ AWS S3 using the [AWS Java SDK](http://aws.amazon.com/documentation/sdkforjava/)
 
 Just clone the repo and run it with Play on your local machine:
 <pre>play debug run</pre>
-
 You'll find inline comments in the code.
+
+AWS Configuration
+-----------------
+To run the app and upload to AWS S3, you must set some environment variables before your run Play:
+<pre>export awsAccessKey   = "yourAwsAccessKey"
+export awsSecretKey   = "yourAwsSecretKey"
+export awsBucketName  = "yourAwsBucketName"</pre>
+

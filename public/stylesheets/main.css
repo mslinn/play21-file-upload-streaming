@@ -16,3 +16,6 @@ h1 { margin-top: 17pt; margin-bottom: 0; }
 h2 { margin-top: 7pt; margin-bottom: 0; }
 h3 { margin-top: 6pt; margin-bottom: 0; }
 h4 { margin-top: 12pt; margin-bottom: 0; }
+
+th { text-align: right; font-size: 12pt; }
+p { font-size: 12pt}

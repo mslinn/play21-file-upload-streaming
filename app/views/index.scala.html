@@ -1,15 +1,33 @@
 @(message: String)
+@import helper._
 @main(message) {
   <h1>@message</h1>
   <h2>Upload to file on Play server</h2>
   @helper.form(action = routes.Application.upload, 'enctype -> "multipart/form-data") {
-    <input type="file" name="file">
-    <p><input type="submit"></p>
+    <input type="file" name="file"> <input type="submit" value="Upload">
   }
 
-  <h2>Upload to AWS S3</h2>
-  @helper.form(action = routes.Application.upload, 'enctype -> "multipart/form-data") {
-    <input type="file" name="file">
-    <p><input type="submit"></p>
+  <h2 style="margin-top: 30pt">Upload to AWS S3 Bucket</h2>
+  <p>You will need to supply your AWS credentials in order for this to work.</p>
+  @helper.form(action = routes.Application.uploadAWS, 'enctype -> "multipart/form-data") {
+    <table>
+      <tr>
+        <th>AWS account name:</th>
+        <td><input name="awsAccountName" size="20" /></td>
+      </tr>
+      <tr>
+        <th>AWS access key:</th>
+        <td><input name="awsAccessKey" size="20" /></td>
+      </tr>
+      <tr>
+        <th>AWS secret key:</th>
+        <td><input name="awsSecretKey" size="20" /></td>
+      </tr>
+      <tr>
+        <th>AWS bucket name:</th>
+        <td><input name="awsBucketName" size="20" /></td>
+      </tr>
+    </table>
+    <input type="file" name="file"> <input type="submit" value="Upload">
   }
 }

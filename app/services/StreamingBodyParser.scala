@@ -28,7 +28,7 @@ class StreamingBodyParser(streamConstructor: String => Option[OutputStream]) {
   def streamingFilePartHandler(request: RequestHeader): PartHandler[FilePart[Either[StreamingError, StreamingSuccess]]] = {
     parse.Multipart.handleFilePart {
       case parse.Multipart.FileInfo(partName, filename, contentType) =>
-        // Reference to hold the error message
+        // Holds any error message
         var errorMsg: Option[StreamingError] = None
 
           /* Create the output stream. If something goes wrong while trying to instantiate the output stream, assign the
