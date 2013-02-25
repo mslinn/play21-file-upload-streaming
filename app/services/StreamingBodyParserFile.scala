@@ -4,26 +4,20 @@ import play.api.mvc.{BodyParser, RequestHeader}
 import play.api.mvc.BodyParsers.parse
 import parse.Multipart.PartHandler
 import play.api.mvc.MultipartFormData.FilePart
-import java.io.{InputStream, OutputStream}
+import java.io.OutputStream
 import play.api.Logger
 import play.api.libs.iteratee.{Cont, Done, Input, Iteratee}
-import com.amazonaws.services.s3.model.UploadPartRequest
-import com.amazonaws.services.s3.AmazonS3Client
 
-case class StreamingSuccess(filename: String)
-case class StreamingError(errorMessage: String)
+object StreamingBodyParserFile {
 
-object StreamingBodyParser {
-
-
-  def streamingBodyParser(streamConstructor: (String, InputStream) => Option[OutputStream]) = BodyParser { request =>
+  def streamingBodyParser(streamConstructor: String => Option[OutputStream]) = BodyParser { request =>
     // Use Play's existing multipart parser from play.api.mvc.BodyParsers.
     // The RequestHeader object is wrapped here so it can be accessed in streamingFilePartHandler
-    parse.multipartFormData(new StreamingBodyParser(streamConstructor).streamingFilePartHandler(request)).apply(request)
+    parse.multipartFormData(new StreamingBodyParserFile(streamConstructor).streamingFilePartHandler(request)).apply(request)
   }
 }
 
-class StreamingBodyParser(streamConstructor: (String, InputStream) => Option[OutputStream], s3: Option[AmazonS3Client]=None) {
+class StreamingBodyParserFile(streamConstructor: String => Option[OutputStream]) {
 
   /** Custom implementation of a PartHandler, inspired by these Play mailing list threads:
    * https://groups.google.com/forum/#!searchin/play-framework/PartHandler/play-framework/WY548Je8VB0/dJkj3arlBigJ
@@ -31,7 +25,7 @@ class StreamingBodyParser(streamConstructor: (String, InputStream) => Option[Out
   def streamingFilePartHandler(request: RequestHeader): PartHandler[FilePart[Either[StreamingError, StreamingSuccess]]] = {
     parse.Multipart.handleFilePart {
       case parse.Multipart.FileInfo(partName, filename, contentType) =>
-        // Holds any error message
+        // Reference to hold the error message
         var errorMsg: Option[StreamingError] = None
 
           /* Create the output stream. If something goes wrong while trying to instantiate the output stream, assign the
@@ -39,8 +33,7 @@ class StreamingBodyParser(streamConstructor: (String, InputStream) => Option[Out
              and set the outputStream reference to `None`; the `Iteratee` will then do nothing and the error message will
              be passed to the `Action`. */
          val outputStream: Option[OutputStream] = try {
-            // AWS stream constructor needs access to the input stream but I don't know how to get it
-            streamConstructor(filename, null)
+            streamConstructor(filename)
           } catch {
             case e: Exception => {
               Logger.error(e.getMessage)
@@ -59,9 +52,7 @@ class StreamingBodyParser(streamConstructor: (String, InputStream) => Option[Out
               val s1 = f(s, e)
               errorMsg match { // if an error occurred during output stream initialisation, set Iteratee to Done
                 case Some(result) => Done(s, Input.EOF)
-                case None =>
-                  val uploadPartResult = s3.get.uploadPart(new UploadPartRequest().withUploadId(uploadId).withPartNumber())
-                  Cont[E, A](i => step(s1)(i))
+                case None => Cont[E, A](i => step(s1)(i))
               }
             }
           }
@@ -76,12 +67,10 @@ class StreamingBodyParser(streamConstructor: (String, InputStream) => Option[Out
           errorMsg match {
             case Some(result) =>
               Logger.error(s"Streaming the file $filename failed: ${result.errorMessage}")
-              s3.completeMultipartUpload(putObjectResult)
               Left(result)
 
             case None =>
               Logger.info(s"$filename finished streaming.")
-              s3.completeMultipartUpload(putObjectResult)
               Right(StreamingSuccess(filename))
           }
         }
