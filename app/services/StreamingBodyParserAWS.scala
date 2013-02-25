@@ -7,20 +7,43 @@ import play.api.mvc.MultipartFormData.FilePart
 import java.io.{InputStream, OutputStream}
 import play.api.Logger
 import play.api.libs.iteratee.{Cont, Done, Input, Iteratee}
-import com.amazonaws.services.s3.model.UploadPartRequest
+import com.amazonaws.services.s3.model.{InitiateMultipartUploadRequest, InitiateMultipartUploadResult, UploadPartRequest}
 import com.amazonaws.services.s3.AmazonS3Client
+import com.amazonaws.auth.AWSCredentials
+import java.util.UUID
 
 object StreamingBodyParserAWS {
 
+  lazy val awsBucketName  = sys.env("awsBucketName")
 
-  def streamingBodyParserAWS(streamConstructor: (String) => Option[OutputStream]) = BodyParser { request =>
+  /** Higher-order function that accepts the unqualified name of the AWS S3 file to stream to and returns the output
+     * stream for the new file. New file name is a GUID; rename it to the desired name once the upload is finished like this:
+     * s3.getObject("x", "y").setKey("z") // renames file y in bucket x to z
+     */
+   def streamConstructor: InitiateMultipartUploadResult = {
+     val s3 = new AmazonS3Client(new AWSCredentials {
+       def getAWSAccessKeyId = sys.env("awsAccessKey")
+
+       def getAWSSecretKey = sys.env("awsSecretKey")
+     })
+
+     if (!s3.doesBucketExist(awsBucketName))
+       s3.createBucket(awsBucketName)
+     val filename = UUID.randomUUID.toString
+     val uploadRequest = new InitiateMultipartUploadRequest(awsBucketName, filename)
+     val initiateMultipartUploadResult = s3.initiateMultipartUpload(uploadRequest)
+     val uploadId = initiateMultipartUploadResult.getUploadId
+     initiateMultipartUploadResult
+   }
+
+  def streamingBodyParser(streamConstructor: (String) => Option[OutputStream]) = BodyParser { request =>
     // Use Play's existing multipart parser from play.api.mvc.BodyParsers.
     // The RequestHeader object is wrapped here so it can be accessed in streamingFilePartHandler
-    parse.multipartFormData(new StreamingBodyParserFile(streamConstructor).streamingFilePartHandler(request)).apply(request)
+    parse.multipartFormData(new StreamingBodyParserAWS(streamConstructor).streamingFilePartHandler(request)).apply(request)
   }
 }
 
-class StreamingBodyParserFileAWS(streamConstructor: (String) => Option[OutputStream], s3: Option[AmazonS3Client]=None) {
+class StreamingBodyParserAWS(streamConstructor: (String) => Option[OutputStream], s3: Option[AmazonS3Client]=None) {
 
   /** Custom implementation of a PartHandler, inspired by these Play mailing list threads:
    * https://groups.google.com/forum/#!searchin/play-framework/PartHandler/play-framework/WY548Je8VB0/dJkj3arlBigJ
