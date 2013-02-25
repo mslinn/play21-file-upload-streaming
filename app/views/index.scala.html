@@ -8,9 +8,12 @@
   }
 
   <h2 style="margin-top: 30pt">Upload to AWS S3 Bucket</h2>
-  <p>You will need to supply your AWS credentials in order for this to work.</p>
-  @helper.form(action = routes.Application.uploadAWS, 'enctype -> "multipart/form-data") {
-    <table>
+  <p>You will need to supply your AWS credentials as environment variables before you start Play in order for this to work.</p>
+<pre>export awsAccessKey   = "yourAwsAccessKey"
+export awsSecretKey   = "yourAwsSecretKey"
+export awsBucketName  = "yourAwsBucketName"</pre>
+  @helper.form(action = routes.Application.uploadAWS, 'enctype -> "multipart/form-data", 'method -> "post") {
+    <!-- <table>
       <tr>
         <th>AWS account name:</th>
         <td><input name="awsAccountName" size="20" /></td>
@@ -27,7 +30,7 @@
         <th>AWS bucket name:</th>
         <td><input name="awsBucketName" size="20" /></td>
       </tr>
-    </table>
+    </table> -->
     <input type="file" name="file"> <input type="submit" value="Upload">
   }
 }

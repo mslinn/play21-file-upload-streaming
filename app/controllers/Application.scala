@@ -33,14 +33,14 @@ object Application extends Controller {
   }
 
 
-  def uploadAWS = Action(StreamingBodyParserAWS.streamingBodyParser(StreamingBodyParserAWS.streamConstructor)) { request =>
-/*    val result = request.body.files(0).ref
+  def uploadAWS = Action(StreamingBodyParserAWS.streamingBodyParser(StreamingBodyParserAWS.streamConstructor)) { implicit request =>
+    val result = request.body.files(0).ref
     if (result.isRight) { // streaming succeeded
       val filename = result.right.get.filename
       Ok(s"File $filename successfully streamed.")
     } else { // file streaming failed
       Ok(s"Streaming error occurred: ${result.left.get.errorMessage}")
-    }*/
+    }
     Ok
   }
 }
