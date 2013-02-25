@@ -41,6 +41,5 @@ object Application extends Controller {
     } else { // file streaming failed
       Ok(s"Streaming error occurred: ${result.left.get.errorMessage}")
     }
-    Ok
   }
 }
