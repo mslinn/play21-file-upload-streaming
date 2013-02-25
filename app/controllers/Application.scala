@@ -3,9 +3,7 @@ package controllers
 import play.api._
 import mvc._
 import services._
-import java.io.{InputStream, FileOutputStream, File}
-import com.amazonaws.services.s3.AmazonS3Client
-import com.amazonaws.services.s3.model._
+import java.io.{FileOutputStream, File}
 
 object Application extends Controller {
   val welcomeMsg = "Demonstrations of Streaming File Uploads for Play 2.1"

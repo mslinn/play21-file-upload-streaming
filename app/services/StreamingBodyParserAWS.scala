@@ -30,16 +30,16 @@ import java.io.ByteArrayInputStream
   * @see https://github.com/blueimp/jQuery-File-Upload/wiki/Options
   * @param defaultMaxUploadFileSize is enforced if browser does not send Content-Length header */
 class Uploader(filename: String, defaultMaxUploadFileSize: Long = 5000000)(implicit request: RequestHeader) {
-  val AwsMaxFileUploadSize: Long = Long.MaxValue // 5TB (AWS limitation)
+  val AwsMaxFileUploadSize: Long = Long.MaxValue // this is as close to 5TB as we can specify with a Long (AWS limitation)
   val AwsMinChunkSize: Long = 5000000 // 5MB (AWS limitation)
 
   val s3 = new AmazonS3Client(new AWSCredentials {
-    def getAWSAccessKeyId = sys.env("awsAccessKey")
+    val getAWSAccessKeyId = sys.env("awsAccessKey")
 
-    def getAWSSecretKey = sys.env("awsSecretKey")
+    val getAWSSecretKey = sys.env("awsSecretKey")
   })
 
-  val awsBucketName  = sys.env("awsBucketName").toLowerCase
+  val awsBucketName  = sys.env("awsBucketName").toLowerCase // bucket names must be lower case
   if (!s3.doesBucketExist(awsBucketName)) // upload will throw exception if bucket belongs to another account
     s3.createBucket(awsBucketName)
 
@@ -47,13 +47,15 @@ class Uploader(filename: String, defaultMaxUploadFileSize: Long = 5000000)(impli
   private val initiateMultipartUploadResult = s3.initiateMultipartUpload(uploadRequest)
   val uploadId = initiateMultipartUploadResult.getUploadId
 
+  // some clients do not provide Content-Length
   val contentLength = request.headers.get("Content-Length").
     getOrElse(math.min(AwsMaxFileUploadSize, defaultMaxUploadFileSize).toString).toInt
   val chunkSize = math.ceil(math.max(AwsMinChunkSize, contentLength / 10000)).toInt // last chunk can be smaller
-
-  private var partNumber = 0
+  // apparently some/all clients provide a zero-sized final chunk. We'll see if this is true.
 
   private val buffer = Array.ofDim[Byte](chunkSize)
+
+  private var partNumber = 0
 
   private var bufPos = 0
 
@@ -61,9 +63,7 @@ class Uploader(filename: String, defaultMaxUploadFileSize: Long = 5000000)(impli
 
   /** AWS S3 parts can be 5 MB to 5 GB in size; last part can be <5 MB.
     * Max of 10,000 parts, for a total of 5TB max upload.
-    * Look at the Content-Length header for an approximation of the uploaded file size
-    * Client appends "/last" to the upload url to signify that the last chunk uploaded
-    * POST /content/dam/dam-folder/catalog.pdf.chunk.<chunk_number>.res/last HTTP/1.1*/
+    * Look at the Content-Length header for an approximation of the uploaded file size */
   def write(byteArray: Array[Byte], length: Int): Unit = {
     Array.copy(byteArray, 0, buffer, bufPos, length)
     bufPos = bufPos + length
