@@ -30,7 +30,6 @@ object Application extends Controller {
     }
   }
 
-
   def uploadAWS = Action(StreamingBodyParserAWS.streamingBodyParser(StreamingBodyParserAWS.streamConstructor)) { implicit request =>
     val result = request.body.files(0).ref
     if (result.isRight) { // streaming succeeded

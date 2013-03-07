@@ -30,7 +30,7 @@ import java.io.ByteArrayInputStream
   * @see https://github.com/blueimp/jQuery-File-Upload/wiki/Options
   * @param defaultMaxUploadFileSize is enforced if browser does not send Content-Length header */
 class Uploader(filename: String, defaultMaxUploadFileSize: Long = 5000000)(implicit request: RequestHeader) {
-  val AwsMaxFileUploadSize: Long = Long.MaxValue // this is as close to 5TB as we can specify with a Long (AWS limitation)
+  val AwsMaxFileUploadSize: Long = Long.MaxValue // this is as close to 5TB as we can specify with a Long
   val AwsMinChunkSize: Long = 5000000 // 5MB (AWS limitation)
 
   val s3 = new AmazonS3Client(new AWSCredentials {
@@ -47,11 +47,10 @@ class Uploader(filename: String, defaultMaxUploadFileSize: Long = 5000000)(impli
   private val initiateMultipartUploadResult = s3.initiateMultipartUpload(uploadRequest)
   val uploadId = initiateMultipartUploadResult.getUploadId
 
-  // some clients do not provide Content-Length
+  // Some clients do not provide Content-Length
   val contentLength = request.headers.get("Content-Length").
     getOrElse(math.min(AwsMaxFileUploadSize, defaultMaxUploadFileSize).toString).toInt
   val chunkSize = math.ceil(math.max(AwsMinChunkSize, contentLength / 10000)).toInt // last chunk can be smaller
-  // apparently some/all clients provide a zero-sized final chunk. We'll see if this is true.
 
   private val buffer = Array.ofDim[Byte](chunkSize)
 
