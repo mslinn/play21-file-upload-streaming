@@ -21,6 +21,12 @@ This project demonstrates two types of streaming upload destinations:
 
 Just clone the repo and run it with Play on your local machine:
 <pre>play debug run</pre>
+
+You can upload using curl instead of the web browser. Thanks to Andrew Gaydenko for the incantation:
+<pre>curl -i --no-keepalive -F name=myFile.mp4 -F filedata=@myFile.mp4 http://localhost:9000/upload</pre>
+
+Files are uploaded to ~/uploadedFiles.
+
 You'll find inline comments in the code.
 You can also read [the StackOverflow post](http://stackoverflow.com/questions/11916911/play-2-x-reactive-file-upload-with-iteratees).
 
