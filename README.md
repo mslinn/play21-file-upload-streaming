@@ -1,5 +1,17 @@
-Streaming HTTP file upload demo for Play 2.1
-============================================
+Streaming HTTP file upload demo for Play 2.1 using AWS S3
+=========================================================
+
+UPDATED: This fork is an example for uploading to S3 using streaming / multipart upload. I have also updated the Scala AWS library
+[https://github.com/mashhoodr/play-libraries].
+
+Before you can run the app and upload to AWS S3, you must configure the accesskeys in the application.conf.
+
+Things to improve:
+- The library is built using Futures but due to my limited knowledge I have not made the uploading of the parts
+async since we need to make sure all the parts have uploaded before we can call the complete method. I shall update
+this soon as well.
+
+--------------------------------------------------------
 
 This small demo shows how large files can be copied from client to a destination without requiring any temporary files,
 and only requires a minimal memory footprint. For example, FireFox sends 8KB chunks when uploading files, so only a
